@@ -57,3 +57,4 @@ venv.bak/
 # Development
 
 docs/memo.md
+logs/

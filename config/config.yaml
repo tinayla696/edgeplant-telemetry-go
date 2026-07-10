@@ -1,0 +1,22 @@
+socketcan:
+  can0:
+    type: can
+    bitrate: 500000
+    dbcpath: config/can0.dbc
+  can1:
+    type: can
+    bitrate: 500000
+    dbcpath: config/can1.dbc
+
+mosquitto:
+  endpoint: 127.0.0.1:8080
+  username: ""
+  password: ""
+  use_tls: false
+  ca_cert_file: ""
+  client_cert: ""
+  client_key: ""
+
+
+gpsdaemon:
+  endpoint: 127.0.0.1:2947
