@@ -24,6 +24,8 @@
 
 `scripts/e2e_vcan.sh` は終了時に `scripts/render_e2e_result_doc.sh` を呼び出し、現在のログと CI 実行メタデータから broker 別の試験結果ページを再生成します。self-hosted GitHub Actions では同じ Markdown を job summary と artifact にも保存します。
 
+self-hosted runner の登録手順と main ブランチ E2E 再実行手順は `public-operations.md` を参照してください。
+
 通常の CI では `mkdocs build --strict` を実行して、生成された試験結果ページを含むドキュメント全体が常に描画可能であることを検証します。GitHub Pages デプロイは `main` ブランチ push または手動実行時に別 workflow で実施し、公開物は GitHub Actions artifact から配信します。`gh-pages` ブランチを成果物置き場として運用しない方針です。
 
 ## ケース1: MQTT上りテレメトリ

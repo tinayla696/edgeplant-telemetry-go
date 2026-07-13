@@ -19,3 +19,4 @@
 - `main` / `develop` への直接 push 禁止
 - SIGTERM時は未送信処理を止めて安全終了
 - GitHub Pages 公開は `main` ブランチ起点の GitHub Actions artifact デプロイで行い、`gh-pages` ブランチへ静的ファイルを直接コミットしない
+- self-hosted E2E runner の最小構成手順と Release 方針は `public-operations.md` を参照

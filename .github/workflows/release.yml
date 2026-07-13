@@ -1,0 +1,67 @@
+name: Telemetry Build and Release
+
+run-name: "Release binaries / ${{ github.ref_name }} / ${{ github.sha }}"
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build amd64/arm64 and publish release
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: src/go.mod
+          cache-dependency-path: src/go.sum
+
+      - name: Prepare release metadata
+        id: meta
+        run: |
+          echo "short_sha=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+          echo "tag_name=main-build-${GITHUB_RUN_NUMBER}-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - name: Build binaries
+        run: |
+          mkdir -p ../dist
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -o ../dist/telemetry-linux-amd64 ./cmd/telemetry
+          CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -o ../dist/telemetry-linux-arm64 ./cmd/telemetry
+
+      - name: Generate checksums
+        run: |
+          cd ../dist
+          sha256sum telemetry-linux-amd64 telemetry-linux-arm64 > SHA256SUMS
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: telemetry-release-binaries-${{ steps.meta.outputs.short_sha }}
+          path: |
+            dist/telemetry-linux-amd64
+            dist/telemetry-linux-arm64
+            dist/SHA256SUMS
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.meta.outputs.tag_name }}
+          name: Telemetry Main Build ${{ steps.meta.outputs.short_sha }}
+          target_commitish: ${{ github.sha }}
+          generate_release_notes: true
+          files: |
+            dist/telemetry-linux-amd64
+            dist/telemetry-linux-arm64
+            dist/SHA256SUMS
