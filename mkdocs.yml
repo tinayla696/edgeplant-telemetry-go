@@ -1,5 +1,5 @@
-site_name: <Application Name>
-site_description: <Application Description>
+site_name: edgeplant-telemetry-go Docs
+site_description: EDGEPLANT T1 telemetry application documentation
 # repo_name: <Repository Name>
 # repo_url: <Repository Link>
 
@@ -69,4 +69,18 @@ extra_javascript:
 
 # ナビゲーションメニューの設定
 nav:
-  - Home: index.md
+  - ホーム: index.md
+  - 戦略 & 要件:
+    - ロードマップ戦略: roadmap.md
+    - システム要件: requirements.md
+    - 要求仕様書: spec.md
+  - 基本設計 (Architecture):
+    - データフロー & トピック規約: design/dataflow.md
+    - JSONスキーマ仕様: design/json_schema.md
+    - 制御オーケストレーション: design/main_logic.md
+  - 開発 & 運用:
+    - クイックスタート: getting-started.md
+    - 開発・運用ルール: development-rules.md
+    - E2E Validation: e2e-validation.md
+    - MQTT E2E 試験結果: test-results-mqtt.md
+    - RabbitMQ E2E 試験結果: test-results-rabbitmq.md

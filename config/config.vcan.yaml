@@ -2,12 +2,12 @@ socketcan:
   can0:
     type: can
     bitrate: 500000
-    dbc_path: config/can0.dbc
+    dbc_path: /workspace/config/can0.dbc
     latch_frame_ids: [0x001, 0x002, 0x003]
   can1:
     type: can
     bitrate: 500000
-    dbc_path: config/can1.dbc
+    dbc_path: /workspace/config/can1.dbc
     latch_frame_ids: [0x101, 0x102, 0x103]
 
 mosquitto:

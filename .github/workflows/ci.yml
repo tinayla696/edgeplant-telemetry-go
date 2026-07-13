@@ -1,0 +1,166 @@
+name: Telemetry Validation CI
+
+run-name: Telemetry Validation CI / ${{ github.ref_name }}
+
+"on":
+  push:
+    branches:
+      - main
+      - develop
+      - "feature/**"
+      - "bugfix/**"
+      - "hotfix/**"
+      - "docs/**"
+      - "chore/**"
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      enable_self_hosted_e2e:
+        description: Run self-hosted vcan E2E jobs when a compatible runner is available
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+
+jobs:
+  go-test:
+    name: Go Test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: src/go.mod
+          cache-dependency-path: src/go.sum
+
+      - name: Unit Test
+        run: go test ./...
+
+  broker-mode-smoke:
+    name: Broker Mode Smoke (${{ matrix.broker }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        broker: [mqtt, rabbitmq]
+    defaults:
+      run:
+        working-directory: src
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: src/go.mod
+          cache-dependency-path: src/go.sum
+
+      - name: Config and broker smoke tests
+        env:
+          TELEMETRY_BROKER_TYPE: ${{ matrix.broker }}
+          TELEMETRY_MQTT_ENDPOINT: test-broker:1883
+          TELEMETRY_RABBITMQ_URL: amqp://guest:guest@test-rabbit:5672/
+        run: |
+          go test ./internal/cfg ./internal/mq
+
+  cross-build:
+    name: Cross Build (${{ matrix.goarch }})
+    runs-on: ubuntu-latest
+    needs: [go-test, broker-mode-smoke]
+    strategy:
+      fail-fast: false
+      matrix:
+        goarch: [amd64, arm64]
+    defaults:
+      run:
+        working-directory: src
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: src/go.mod
+          cache-dependency-path: src/go.sum
+
+      - name: Build telemetry binary
+        run: |
+          CGO_ENABLED=0 GOOS=linux GOARCH=${{ matrix.goarch }} \
+            go build -trimpath -o telemetry-${{ matrix.goarch }} ./cmd/telemetry
+
+  docs-build:
+    name: Docs Build Validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install docs dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Build MkDocs site
+        run: mkdocs build --strict
+
+      - name: Upload site artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: telemetry-docs-site-preview
+          path: site
+
+  e2e-vcan:
+    name: E2E VCAN Evidence (${{ matrix.broker }})
+    if: ${{ vars['ENABLE_SELF_HOSTED_E2E'] == 'true' || (github.event_name == 'workflow_dispatch' && inputs['enable_self_hosted_e2e'] == 'true') }}
+    runs-on: [self-hosted, linux]
+    needs: [go-test, broker-mode-smoke, cross-build, docs-build]
+    strategy:
+      fail-fast: false
+      matrix:
+        broker: [mqtt, rabbitmq]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run E2E
+        env:
+          E2E_COMMAND: ./scripts/e2e_vcan.sh ${{ matrix.broker }}
+          E2E_DEVICE_ID: vcan-e2e
+          RUNNER_NAME: ${{ runner.name }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+        run: |
+          chmod +x scripts/e2e_vcan.sh scripts/mock_gpsd.py scripts/render_e2e_result_doc.sh
+          ./scripts/e2e_vcan.sh ${{ matrix.broker }}
+
+      - name: Append E2E summary
+        if: always()
+        run: cat docs/test-results-${{ matrix.broker }}.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload E2E logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: telemetry-e2e-${{ matrix.broker }}-evidence
+          path: |
+            logs/app.${{ matrix.broker }}.log
+            logs/server.${{ matrix.broker }}.uplink.log
+            logs/server.${{ matrix.broker }}.downlink.log
+            logs/e2e_${{ matrix.broker }}_uplink.json
+            logs/e2e_${{ matrix.broker }}_downlink_can.log
+            docs/test-results-${{ matrix.broker }}.md

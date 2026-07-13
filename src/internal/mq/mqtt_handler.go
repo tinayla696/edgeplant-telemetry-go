@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"gihub.com/tinayla696/edgeplant-telemetry-go/internal/cfg"
@@ -24,7 +25,7 @@ func New(deviceID string, cfg cfg.MqttCfg, logger *zap.SugaredLogger) (*Handler,
 	// Create MQTT client options
 	opts := mqtt.NewClientOptions()
 	opts.SetClientID(deviceID)
-	opts.AddBroker(cfg.Endpoint)
+	opts.AddBroker(normalizeBrokerEndpoint(cfg.Endpoint, cfg.UseTLS))
 	opts.SetUsername(cfg.UserName)
 	opts.SetPassword(cfg.Password)
 
@@ -95,20 +96,35 @@ func (h *Handler) Close() {
 func (h *Handler) Publish(topic string, qos byte, retained bool, payload []byte) {
 	if !h.client.IsConnected() {
 		h.logger.Warnf("MQTT client is not connected. Cannot publish to topic: %s", topic)
+		return
 	}
 
 	token := h.client.Publish(topic, qos, retained, payload)
-	_ = token
+	if token.Wait() && token.Error() != nil {
+		h.logger.Errorf("Failed to publish to topic %s: %v", topic, token.Error())
+	}
 }
 
 // Subscribe to topics
 func (h *Handler) Subscribe(topics map[string]byte, callback mqtt.MessageHandler) {
 	if !h.client.IsConnected() {
 		h.logger.Warnf("MQTT client is not connected. Cannot subscribe to topics.")
+		return
 	}
 
 	token := h.client.SubscribeMultiple(topics, callback)
 	if token.Wait() && token.Error() != nil {
 		h.logger.Errorf("Failed to subscribe to topics: %v", token.Error())
 	}
+}
+
+func normalizeBrokerEndpoint(endpoint string, useTLS bool) string {
+	e := strings.TrimSpace(endpoint)
+	if strings.HasPrefix(e, "tcp://") || strings.HasPrefix(e, "ssl://") || strings.HasPrefix(e, "tls://") || strings.HasPrefix(e, "ws://") || strings.HasPrefix(e, "wss://") {
+		return e
+	}
+	if useTLS {
+		return "ssl://" + e
+	}
+	return "tcp://" + e
 }

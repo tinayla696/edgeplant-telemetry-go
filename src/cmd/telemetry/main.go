@@ -8,9 +8,11 @@ import (
 	"os/signal"
 	"sync"
 	"syscall"
+	"time"
 
 	"gihub.com/tinayla696/edgeplant-telemetry-go/internal/canhandler"
 	"gihub.com/tinayla696/edgeplant-telemetry-go/internal/cfg"
+	"gihub.com/tinayla696/edgeplant-telemetry-go/internal/dispatcher"
 	"gihub.com/tinayla696/edgeplant-telemetry-go/internal/gps"
 	"gihub.com/tinayla696/edgeplant-telemetry-go/internal/logger"
 	"gihub.com/tinayla696/edgeplant-telemetry-go/internal/mq"
@@ -71,35 +73,27 @@ func main() {
 
 	// Working Grp
 	var wg sync.WaitGroup
-	mqttPubCh := make(chan mq.Msg)
-	mqttSubCh := make(chan mq.Msg)
-	gpsRxCh := make(chan gps.Data)
-	canRxCh := make(chan canhandler.DecodeMsg)
-	canTxCh := make(chan canhandler.DecodeMsg)
+	gpsRxCh := make(chan gps.Data, 100)
+	canRxCh := make(chan canhandler.DecodeMsg, 200)
+	canTxCh := make(chan canhandler.DecodeMsg, 100)
 
-	// MQTT Handler
-	wg.Add(1)
-	mqttH, err := mq.New(*deviceIDStr, cfg.Mosquitto, zap.S())
+	// Message Broker Handler
+	broker, err := mq.NewBroker(*deviceIDStr, cfg.Broker.Type, cfg.Mosquitto, cfg.RabbitMQ, zap.S())
 	if err != nil {
-		zap.S().Fatalf("Failed to initialize MQTT handler: %v", err)
+		zap.S().Fatalf("Failed to initialize broker handler: %v", err)
 	}
-	defer mqttH.Close()
-
-	// GPSD Handler
-	wg.Add(1)
-	gpsH := gps.New(cfg.Gpsd.Endpoint, zap.S())
-	go func() {
-		defer wg.Done()
-		gpsH.Start(context.Background(), gpsRxCh)
-	}()
+	defer broker.Close()
 
 	// SocketCAN Handler
+	canHandlers := make(map[string]*canhandler.Handler, len(cfg.SocketCAN))
 	for ifName, canCfg := range cfg.SocketCAN {
 		zap.S().Infof("Starting SocketCAN handler for interface: %s", ifName)
 		h, err := canhandler.New(ctx, ifName, canCfg, zap.S())
 		if err != nil {
 			zap.S().Fatalf("Failed to initialize SocketCAN handler for interface %s: %v", ifName, err)
 		}
+		canHandlers[ifName] = h
+		defer h.Close()
 
 		// Start Listening to CAN messages
 		wg.Add(1)
@@ -108,6 +102,90 @@ func main() {
 			h.StartListening(ctx, canRxCh)
 		}(h)
 	}
+
+	// GPSD Handler
+	wg.Add(1)
+	gpsH := gps.New(cfg.Gpsd.Endpoint, zap.S())
+	go func() {
+		defer wg.Done()
+		gpsH.Start(ctx, gpsRxCh)
+	}()
+
+	// MQTT subscriber for control commands.
+	rxTopics := make(map[string]byte)
+	for _, prefix := range cfg.Telemetry.SubscribeMsgs.TopicPrefixes {
+		topic := mq.BuildTopic("rx", *deviceIDStr, prefix)
+		rxTopics[topic] = 0
+	}
+	rxTopicList := make([]string, 0, len(rxTopics))
+	for topic := range rxTopics {
+		rxTopicList = append(rxTopicList, topic)
+	}
+	if err := broker.Subscribe(rxTopicList, func(topic string, payload []byte) {
+		parsed, err := mq.ParseControlCommand(payload)
+		if err != nil {
+			zap.S().Warnf("Invalid command payload on topic %s: %v", topic, err)
+			return
+		}
+		select {
+		case canTxCh <- parsed:
+		case <-ctx.Done():
+		}
+	}); err != nil {
+		zap.S().Fatalf("Failed to subscribe control topics: %v", err)
+	}
+
+	// TX worker.
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case msg := <-canTxCh:
+				h, ok := canHandlers[msg.BusID]
+				if !ok {
+					zap.S().Warnf("No CAN handler for bus_id=%s", msg.BusID)
+					continue
+				}
+				if err := h.SendFrame(ctx, msg); err != nil {
+					zap.S().Warnf("Failed to send frame to %s: %v", msg.BusID, err)
+				}
+			}
+		}
+	}()
+
+	// Publisher worker.
+	txTopic := mq.BuildTopic("tx", *deviceIDStr, cfg.Telemetry.PublishMsgs.TopicPrefix)
+	agg := dispatcher.NewAggregator()
+	pubInterval := time.Duration(cfg.Telemetry.PublishMsgs.IntervalMs) * time.Millisecond
+	ticker := time.NewTicker(pubInterval)
+	defer ticker.Stop()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case gpsMsg := <-gpsRxCh:
+				agg.UpdateGPS(gpsMsg)
+			case canMsg := <-canRxCh:
+				agg.UpdateCAN(canMsg)
+			case <-ticker.C:
+				payload, err := agg.MarshalSnapshot(time.Now())
+				if err != nil {
+					zap.S().Warnf("Failed to build snapshot payload: %v", err)
+					continue
+				}
+				if err := broker.Publish(txTopic, payload); err != nil {
+					zap.S().Warnf("Failed to publish snapshot: %v", err)
+				}
+			}
+		}
+	}()
 
 	// End Program on Interrupt
 	<-interruptCh

@@ -1,0 +1,39 @@
+socketcan:
+  can0:
+    type: can
+    bitrate: 500000
+    dbc_path: config/can0.dbc
+    latch_frame_ids: [0x001, 0x002, 0x003]
+  can1:
+    type: can
+    bitrate: 500000
+    dbc_path: config/can1.dbc
+    latch_frame_ids: [0x101, 0x102, 0x103]
+
+mosquitto:
+  endpoint: broker.example.com:8883
+  username: telemetry
+  password: "${TELEMETRY_MQTT_PASSWORD}"
+  use_tls: true
+  ca_cert_path: /etc/edgeplant/certs/ca.crt
+  client_cert: /etc/edgeplant/certs/client.crt
+  client_key: /etc/edgeplant/certs/client.key
+
+rabbitmq:
+  endpoint: amqps://telemetry:${TELEMETRY_RABBITMQ_PASSWORD}@rabbit.example.com:5671/
+  username: telemetry
+  password: "${TELEMETRY_RABBITMQ_PASSWORD}"
+  exchange: edgeplant.telemetry
+
+broker:
+  type: mqtt
+
+gpsd:
+  endpoint: 127.0.0.1:2947
+
+telemetry_options:
+  publish_msgs:
+    topic_prefix: state
+    interval_ms: 100
+  subscribe_msgs:
+    topic_prefixes: [ctrl]
