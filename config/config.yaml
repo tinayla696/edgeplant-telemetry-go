@@ -1,0 +1,39 @@
+socketcan:
+  can0:
+    type: can
+    bitrate: 500000
+    dbc_path: config/can0.dbc
+    latch_frame_ids: [0x001, 0x002, 0x003]
+  can1:
+    type: can
+    bitrate: 500000
+    dbc_path: config/can1.dbc
+    latch_frame_ids: [0x101, 0x102, 0x103]
+
+mosquitto:
+  endpoint: 127.0.0.1:1883
+  username: ""
+  password: ""
+  use_tls: false
+  ca_cert_path: ""
+  client_cert: ""
+  client_key: ""
+
+rabbitmq:
+  endpoint: 127.0.0.1:5672
+  username: guest
+  password: guest
+  exchange: amq.topic
+
+broker:
+  type: mqtt
+
+gpsd:
+  endpoint: 127.0.0.1:2947
+
+telemetry_options:
+  publish_msgs:
+    topic_prefix: state
+    interval_ms: 100
+  subscribe_msgs:
+    topic_prefixes: [ctrl]

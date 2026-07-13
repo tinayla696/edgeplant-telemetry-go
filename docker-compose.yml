@@ -1,0 +1,55 @@
+services:
+  mqtt-broker:
+    image: eclipse-mosquitto:2.0
+    network_mode: host
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    network_mode: host
+
+  gpsd-mock:
+    image: python:3.12-alpine
+    network_mode: host
+    working_dir: /workspace
+    volumes:
+      - ./:/workspace
+    command: >
+      sh -c "python3 /workspace/scripts/mock_gpsd.py"
+
+  telemetry:
+    image: golang:1.25
+    network_mode: host
+    privileged: true
+    working_dir: /workspace/src
+    environment:
+      TELEMETRY_BROKER_TYPE: ${E2E_BROKER_TYPE:-mqtt}
+      TELEMETRY_MQTT_ENDPOINT: ${E2E_MQTT_ENDPOINT:-127.0.0.1:1883}
+      TELEMETRY_RABBITMQ_URL: ${E2E_RABBITMQ_URL:-amqp://guest:guest@127.0.0.1:5672/}
+    volumes:
+      - ./:/workspace
+    depends_on:
+      - mqtt-broker
+      - rabbitmq
+      - gpsd-mock
+    command: >
+      bash -lc "apt-get update && apt-get install -y --no-install-recommends iproute2 can-utils &&
+      mkdir -p /workspace/logs &&
+      ip link add dev can0 type vcan 2>/dev/null || true &&
+      ip link add dev can1 type vcan 2>/dev/null || true &&
+      ip link set can0 up && ip link set can1 up &&
+      /usr/local/go/bin/go mod download &&
+      /usr/local/go/bin/go run ./cmd/telemetry -device vcan-e2e -conf /workspace/config/config.vcan.yaml -logPath /workspace/logs"
+
+  mqtt-tools:
+    image: eclipse-mosquitto:2.0
+    network_mode: host
+    entrypoint: ["sh", "-c", "sleep infinity"]
+
+  amqp-tools:
+    image: python:3.12-alpine
+    network_mode: host
+    working_dir: /workspace
+    volumes:
+      - ./:/workspace
+    command: >
+      sh -c "python3 -m pip install --quiet pika && sleep infinity"
