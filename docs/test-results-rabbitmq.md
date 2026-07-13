@@ -1,13 +1,13 @@
 # RabbitMQ E2E Test Result
 
-- Executed at: 2026-07-13T04:24:35Z
+- Executed at: 2026-07-13T05:11:27Z
 - Mode: rabbitmq
 - Device ID: vcan-e2e
 - Result: Pass
 - Command: `./scripts/e2e_vcan.sh rabbitmq`
 - Runner: LAPTOP-CNOSSPAI
-- Branch: `develop`
-- Commit: `94693f106954`
+- Branch: `main`
+- Commit: `8e4ec401e404`
 - Workflow: local
 
 ## Validation Scope
@@ -19,7 +19,7 @@
 ## Observed Uplink JSON
 
 ```json
-{"Timestamp":"2026-07-13T04:21:48Z","vehicle":{"can0":{"brake":2,"left_turn":0,"right_turn":1,"speed":2.56,"steering_deg":102.7}},"location":{"latitude":35.6812,"longitude":139.7671,"altitude":24.5,"speed":10,"timestamp":"2024-06-10T15:30:30Z"}}
+{"Timestamp":"2026-07-13T05:11:26Z","vehicle":{"can0":{"brake":2,"left_turn":0,"right_turn":1,"speed":2.56,"steering_deg":102.7}},"location":{"latitude":35.6812,"longitude":139.7671,"altitude":24.5,"speed":10,"timestamp":"2024-06-10T15:30:30Z"}}
 
 ```
 
