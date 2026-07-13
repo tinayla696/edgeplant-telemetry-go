@@ -86,14 +86,21 @@ func main() {
 
 	// SocketCAN Handler
 	canHandlers := make(map[string]*canhandler.Handler, len(cfg.SocketCAN))
+	latchFrameIDSet := make(map[string]map[uint32]bool, len(cfg.SocketCAN))
 	for ifName, canCfg := range cfg.SocketCAN {
 		zap.S().Infof("Starting SocketCAN handler for interface: %s", ifName)
+		idSet := make(map[uint32]bool, len(canCfg.LatchFrameIDs))
+		for _, frameID := range canCfg.LatchFrameIDs {
+			idSet[frameID] = true
+		}
+		latchFrameIDSet[ifName] = idSet
+		zap.S().Debugf("Latch whitelist for %s initialized with %d frame IDs", ifName, len(idSet))
+
 		h, err := canhandler.New(ctx, ifName, canCfg, zap.S())
 		if err != nil {
 			zap.S().Fatalf("Failed to initialize SocketCAN handler for interface %s: %v", ifName, err)
 		}
 		canHandlers[ifName] = h
-		defer h.Close()
 
 		// Start Listening to CAN messages
 		wg.Add(1)
@@ -173,6 +180,15 @@ func main() {
 			case gpsMsg := <-gpsRxCh:
 				agg.UpdateGPS(gpsMsg)
 			case canMsg := <-canRxCh:
+				ifIDs, ok := latchFrameIDSet[canMsg.BusID]
+				if !ok {
+					zap.S().Debugf("Skip CAN latch: unknown bus_id=%s frame_id=%d", canMsg.BusID, canMsg.FrameID)
+					continue
+				}
+				if !ifIDs[canMsg.FrameID] {
+					zap.S().Debugf("Skip CAN latch: bus_id=%s frame_id=%d not in whitelist", canMsg.BusID, canMsg.FrameID)
+					continue
+				}
 				agg.UpdateCAN(canMsg)
 			case <-ticker.C:
 				payload, err := agg.MarshalSnapshot(time.Now())
@@ -190,6 +206,10 @@ func main() {
 	// End Program on Interrupt
 	<-interruptCh
 	cancelFn()
+	for ifName, h := range canHandlers {
+		zap.S().Debugf("Closing SocketCAN handler: %s", ifName)
+		h.Close()
+	}
 	wg.Wait()
 	zap.S().Info("Telemetry program terminated gracefully.")
 }
