@@ -109,7 +109,8 @@ func (h *Handler) Publish(topic string, qos byte, retained bool, payload []byte)
 func (h *Handler) Subscribe(topics map[string]byte, callback mqtt.MessageHandler) error {
 	deadline := time.Now().Add(5 * time.Second)
 	for {
-		if time.Now().After(deadline) {
+		remaining := time.Until(deadline)
+		if remaining <= 0 {
 			return fmt.Errorf("mqtt client is not connected; subscribe timeout")
 		}
 
@@ -119,7 +120,11 @@ func (h *Handler) Subscribe(topics map[string]byte, callback mqtt.MessageHandler
 		}
 
 		token := h.client.SubscribeMultiple(topics, callback)
-		if token.Wait() && token.Error() != nil {
+		if !token.WaitTimeout(remaining) {
+			return fmt.Errorf("failed to subscribe to topics: timeout waiting for subscribe completion")
+		}
+
+		if token.Error() != nil {
 			errMsg := strings.ToLower(token.Error().Error())
 			if strings.Contains(errMsg, "not currently connected") || strings.Contains(errMsg, "connection lost before subscribe completed") {
 				time.Sleep(100 * time.Millisecond)

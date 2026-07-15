@@ -39,7 +39,7 @@ go run ./cmd/gamepadweb \
   -device vcan-e2e \
   -topic-prefix ctrl \
   -bus can0 \
-  -frame 0x2 >"$WEB_LOG" 2>&1 &
+  -map-config ../config/gamepad_mapping_all_inputs.yaml >"$WEB_LOG" 2>&1 &
 WEB_PID=$!
 
 for _ in $(seq 1 30); do
@@ -59,6 +59,6 @@ curl -fsS -X POST http://127.0.0.1:8088/api/gamepad \
 
 wait "$CANDUMP_PID"
 
-grep -Eiq 'can0\s+002' "$CAN_LOG"
+grep -Eiq 'can0\s+210' "$CAN_LOG"
 
-echo "PASS: Gamepad sample flow published MQTT command and telemetry emitted CAN frame (0x2)."
+echo "PASS: Gamepad sample flow published MQTT command and telemetry emitted CAN frame (0x210)."

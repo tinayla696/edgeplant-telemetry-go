@@ -6,7 +6,9 @@ import (
 	"flag"
 	"fmt"
 	"io/fs"
+	"net"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -31,11 +33,38 @@ type server struct {
 	mapOpts gamepad.MultiMapOptions
 }
 
-// go:embed assets
+//go:embed assets
 var webAssets embed.FS
 
 var upgrader = websocket.Upgrader{
-	CheckOrigin: func(_ *http.Request) bool { return true },
+	CheckOrigin: func(r *http.Request) bool {
+		origin := r.Header.Get("Origin")
+		if origin == "" {
+			return true
+		}
+
+		u, err := url.Parse(origin)
+		if err != nil {
+			return false
+		}
+
+		originHost := u.Hostname()
+		requestHost := r.Host
+		if h, _, err := net.SplitHostPort(r.Host); err == nil {
+			requestHost = h
+		}
+
+		if strings.EqualFold(originHost, requestHost) {
+			return true
+		}
+
+		return isLoopbackHost(originHost) && isLoopbackHost(requestHost)
+	},
+}
+
+func isLoopbackHost(host string) bool {
+	h := strings.Trim(strings.ToLower(host), "[]")
+	return h == "localhost" || h == "127.0.0.1" || h == "::1"
 }
 
 func main() {
