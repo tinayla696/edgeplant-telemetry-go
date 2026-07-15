@@ -320,6 +320,13 @@ services:
 
 ```
 
+## 📚 Gamepad 関連ドキュメント
+
+- 実行手順（推奨）: `docs/gamepad-runbook.md`
+- サンプルフロー: `docs/gamepad-mqtt-can-flow.md`
+
+Gamepad MQTT-CAN 検証時は、`candump` を telemetry と同じ実行空間（host/container）で実行してください。
+
 ---
 
 ## 🛠 開発・運用ルール (Docs as Code)

@@ -127,7 +127,7 @@ jobs:
 
   e2e-vcan:
     name: E2E VCAN Evidence (${{ matrix.broker }})
-    if: ${{ vars['ENABLE_SELF_HOSTED_E2E'] == 'true' || (github.event_name == 'workflow_dispatch' && inputs['enable_self_hosted_e2e'] == 'true') }}
+    if: ${{ (github.event_name == 'workflow_dispatch' && inputs['enable_self_hosted_e2e'] == 'true') || vars.ENABLE_SELF_HOSTED_E2E == 'true' }}
     runs-on: [self-hosted, linux]
     needs: [go-test, broker-mode-smoke, cross-build, docs-build]
     strategy:
