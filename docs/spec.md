@@ -6,7 +6,7 @@
 - REQ-02: DBCで物理値デコード
 - REQ-03: GPSDから位置・時刻取得
 - REQ-04: 自動再接続付きでMQへPublish
-- REQ-05: MQ Subscribeで制御JSONを非同期受信
+- REQ-05: MQ Subscribeで制御JSONを非同期受信（接続瞬断時は再試行）
 - REQ-06: 受信JSONをDBCエンコードしCAN送信
 
 ## 非機能要件

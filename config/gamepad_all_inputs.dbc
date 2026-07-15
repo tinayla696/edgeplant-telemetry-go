@@ -1,0 +1,57 @@
+VERSION "edgeplant-gamepad-all-inputs"
+
+NS_ :
+	NS_DESC_
+	CM_
+	BA_DEF_
+	BA_
+	VAL_
+	CAT_DEF_
+	CAT_
+	FILTER
+	BA_DEF_DEF_
+	EV_DATA_
+	ENVVAR_DATA_
+	SGTYPE_
+	SGTYPE_VAL_
+	BA_DEF_SGTYPE_
+	BA_SGTYPE_
+	SIG_TYPE_REF_
+	VAL_TABLE_
+	SIG_GROUP_
+	SIG_VALTYPE_
+	SIGTYPE_VALTYPE_
+	BO_TX_BU_
+	BA_DEF_REL_
+	BA_REL_
+	BA_DEF_DEF_REL_
+	BU_SG_REL_
+	BU_EV_REL_
+	BU_BO_REL_
+	SG_MUL_VAL_
+
+BS_:
+
+BU_: ECU
+
+BO_ 528 GamepadMsg: 8 ECU
+ SG_ StickLX : 0|8@1- (1,0) [-128|127] "" ECU
+ SG_ StickLY : 8|8@1- (1,0) [-128|127] "" ECU
+ SG_ StickRX : 16|8@1- (1,0) [-128|127] "" ECU
+ SG_ StickRY : 24|8@1- (1,0) [-128|127] "" ECU
+ SG_ Btn00_P : 32|1@1+ (1,0) [0|1] "" ECU
+ SG_ Btn01_P : 33|1@1+ (1,0) [0|1] "" ECU
+ SG_ Btn02_P : 34|1@1+ (1,0) [0|1] "" ECU
+ SG_ Btn03_P : 35|1@1+ (1,0) [0|1] "" ECU
+ SG_ Btn04_P : 36|1@1+ (1,0) [0|1] "" ECU
+ SG_ Btn05_P : 37|1@1+ (1,0) [0|1] "" ECU
+ SG_ Btn06_P : 38|1@1+ (1,0) [0|1] "" ECU
+ SG_ Btn07_P : 39|1@1+ (1,0) [0|1] "" ECU
+ SG_ Btn08_P : 40|1@1+ (1,0) [0|1] "" ECU
+ SG_ Btn09_P : 41|1@1+ (1,0) [0|1] "" ECU
+ SG_ Btn10_P : 42|1@1+ (1,0) [0|1] "" ECU
+ SG_ Btn11_P : 43|1@1+ (1,0) [0|1] "" ECU
+ SG_ Btn12_P : 44|1@1+ (1,0) [0|1] "" ECU
+ SG_ Btn13_P : 45|1@1+ (1,0) [0|1] "" ECU
+ SG_ Btn14_P : 46|1@1+ (1,0) [0|1] "" ECU
+ SG_ Btn15_P : 47|1@1+ (1,0) [0|1] "" ECU

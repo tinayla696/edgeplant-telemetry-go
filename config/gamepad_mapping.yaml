@@ -1,0 +1,25 @@
+base:
+  frame_id: "0x2"
+  signals:
+    control_command: "ControlCommand"
+    control_value: "ControlValue"
+
+steer:
+  frame_id: "0x3"
+  signals:
+    steering_command: "SteeringCommand"
+    steering_enable: "SteeringEnable"
+
+trigger:
+  frame_id: "0x4"
+  signals:
+    brake_command: "BrakeCommand"
+    throttle_command: "ThrottleCommand"
+
+buttons:
+  frame_id: "0x5"
+  signals:
+    horn_command: "HornCommand"
+    light_toggle: "LightToggle"
+    mode_next: "ModeNext"
+    mode_previous: "ModePrevious"

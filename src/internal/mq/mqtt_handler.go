@@ -106,15 +106,28 @@ func (h *Handler) Publish(topic string, qos byte, retained bool, payload []byte)
 }
 
 // Subscribe to topics
-func (h *Handler) Subscribe(topics map[string]byte, callback mqtt.MessageHandler) {
-	if !h.client.IsConnected() {
-		h.logger.Warnf("MQTT client is not connected. Cannot subscribe to topics.")
-		return
-	}
+func (h *Handler) Subscribe(topics map[string]byte, callback mqtt.MessageHandler) error {
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		if time.Now().After(deadline) {
+			return fmt.Errorf("mqtt client is not connected; subscribe timeout")
+		}
 
-	token := h.client.SubscribeMultiple(topics, callback)
-	if token.Wait() && token.Error() != nil {
-		h.logger.Errorf("Failed to subscribe to topics: %v", token.Error())
+		if !h.client.IsConnected() {
+			time.Sleep(100 * time.Millisecond)
+			continue
+		}
+
+		token := h.client.SubscribeMultiple(topics, callback)
+		if token.Wait() && token.Error() != nil {
+			errMsg := strings.ToLower(token.Error().Error())
+			if strings.Contains(errMsg, "not currently connected") || strings.Contains(errMsg, "connection lost before subscribe completed") {
+				time.Sleep(100 * time.Millisecond)
+				continue
+			}
+			return fmt.Errorf("failed to subscribe to topics: %w", token.Error())
+		}
+		return nil
 	}
 }
 

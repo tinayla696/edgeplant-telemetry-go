@@ -48,9 +48,11 @@ func (m *mqttBroker) Subscribe(topics []string, handler func(topic string, paylo
 	for _, topic := range topics {
 		topicMap[topic] = 0
 	}
-	m.h.Subscribe(topicMap, func(_ mqtt.Client, msg mqtt.Message) {
+	if err := m.h.Subscribe(topicMap, func(_ mqtt.Client, msg mqtt.Message) {
 		handler(msg.Topic(), msg.Payload())
-	})
+	}); err != nil {
+		return err
+	}
 	return nil
 }
 

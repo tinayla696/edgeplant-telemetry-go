@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Gamepad MQTT CAN Tester</title>
+  <link rel="stylesheet" href="/assets/style.css" />
+</head>
+<body>
+  <div class="card">
+    <h1>Gamepad Input Monitor + MQTT CAN Test</h1>
+    <p>コントローラーの全ボタン・全スティック入力を可視化しつつ、WebSocketでローカルサーバーへ送信します。</p>
+    <div class="row">
+      <span class="pill" id="status">WebSocket: connecting...</span>
+      <span class="pill" id="pad">Gamepad: none</span>
+      <span class="pill" id="gpapi">Gamepad API: checking...</span>
+      <button id="start">送信開始</button>
+      <button id="stop">停止</button>
+    </div>
+    <p class="warn">初回は任意のボタンを1回押してください。入力可視化は常時、MQTT送信は「送信開始」後に実行します。</p>
+    <div class="monitor">
+      <section class="panel">
+        <h3>Axes XY Graph (2軸ペア表示)</h3>
+        <div id="axesPanel"></div>
+      </section>
+      <section class="panel">
+        <h3>Buttons (全ボタン)</h3>
+        <div id="buttonsPanel" class="buttons-grid"></div>
+      </section>
+    </div>
+    <pre id="out"></pre>
+  </div>
+  <script src="/assets/app.js"></script>
+</body>
+</html>
