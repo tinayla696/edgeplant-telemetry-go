@@ -1,0 +1,5 @@
+# Full gamepad input mapping (all sticks + all buttons)
+# Frame IDs match config/gamepad_all_inputs.dbc
+
+all_inputs:
+  gamepad_msg_frame_id: "0x210"

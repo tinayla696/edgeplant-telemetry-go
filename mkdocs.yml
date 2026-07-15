@@ -81,6 +81,8 @@ nav:
   - 開発 & 運用:
     - クイックスタート: getting-started.md
     - 開発・運用ルール: development-rules.md
+    - Gamepad 実行手順 (Runbook): gamepad-runbook.md
+    - Gamepad MQTT-CAN サンプル: gamepad-mqtt-can-flow.md
     - Public 運用・Runner・Release 方針: public-operations.md
     - E2E Validation: e2e-validation.md
     - MQTT E2E 試験結果: test-results-mqtt.md
